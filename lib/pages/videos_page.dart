@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import 'package:chewie/chewie.dart';
 
 class VideosPage extends StatelessWidget {
   const VideosPage({super.key});
@@ -37,23 +38,60 @@ class VideoLibrary extends StatefulWidget {
 }
 
 class _VideoLibraryState extends State<VideoLibrary> {
-  late VideoPlayerController _controller;
+  VideoPlayerController? _controller;
+  ChewieController? _chewieController;
+  List<String> videoUrls = [
+    'https://pixabay.com/videos/download/video-140111_tiny.mp4',
+    'https://pixabay.com/videos/download/video-47213_small.mp4',
+    'https://v3.cdnpk.net/videvo_files/video/free/2022-01/large_preview/220114_01_Drone_4k_017.mp4?token=exp=1722252947~hmac=9203d516209373deb36a8dbb642c9d91a32098885aa0e7c48d301da236fbd0af',
+  ];
+  String? selectedVideo;
+  bool isError = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _controller = VideoPlayerController.network(
-        'https://www.sample-videos.com/video123/mp4/480/asdasdas.mp4')
+  void _initializeVideoController(String url) {
+    setState(() {
+      isError = false;
+    });
+    _controller = VideoPlayerController.network(url)
       ..initialize().then((_) {
-        setState(() {});
-        _controller.play();
+        setState(() {
+          _chewieController = ChewieController(
+            videoPlayerController: _controller!,
+            autoPlay: true,
+            looping: false,
+            aspectRatio: _controller!.value.aspectRatio,
+            autoInitialize: true,
+          );
+        });
+      }).catchError((error) {
+        setState(() {
+          isError = true;
+        });
       });
+  }
+
+  void _onVideoSelected(String url) {
+    setState(() {
+      selectedVideo = url;
+      if (_controller != null) {
+        _controller!.dispose();
+      }
+      if (_chewieController != null) {
+        _chewieController!.dispose();
+      }
+      _initializeVideoController(selectedVideo!);
+    });
   }
 
   @override
   void dispose() {
+    if (_controller != null) {
+      _controller!.dispose();
+    }
+    if (_chewieController != null) {
+      _chewieController!.dispose();
+    }
     super.dispose();
-    _controller.dispose();
   }
 
   @override
@@ -62,46 +100,54 @@ class _VideoLibraryState extends State<VideoLibrary> {
       appBar: AppBar(
         title: Text('Video Library'),
       ),
-      body: Center(
-        child: _controller.value.isInitialized
-            ? Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  AspectRatio(
-                    aspectRatio: _controller.value.aspectRatio,
-                    child: VideoPlayer(_controller),
-                  ),
-                  VideoProgressIndicator(_controller, allowScrubbing: true),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          _controller.value.isPlaying
-                              ? Icons.pause
-                              : Icons.play_arrow,
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              itemCount: videoUrls.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text('Video ${index + 1}'),
+                  onTap: () => _onVideoSelected(videoUrls[index]),
+                );
+              },
+            ),
+          ),
+          if (selectedVideo != null)
+            Expanded(
+              child: _controller != null && _controller!.value.isInitialized
+                  ? Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Chewie(
+                            controller: _chewieController!,
+                          ),
                         ),
-                        onPressed: () {
-                          setState(() {
-                            _controller.value.isPlaying
-                                ? _controller.pause()
-                                : _controller.play();
-                          });
-                        },
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.stop),
-                        onPressed: () {
-                          _controller.seekTo(Duration.zero);
-                          _controller.pause();
-                        },
-                      ),
-                    ],
-                  ),
-                ],
-              )
-            : CircularProgressIndicator(),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              selectedVideo = null;
+                              _controller!.dispose();
+                              _chewieController!.dispose();
+                              _controller = null;
+                              _chewieController = null;
+                            });
+                          },
+                          child: Text('Back to Video List'),
+                        ),
+                      ],
+                    )
+                  : Center(child: CircularProgressIndicator()),
+            ),
+        ],
       ),
     );
   }
+}
+
+void main() {
+  runApp(MaterialApp(
+    home: VideosPage(),
+  ));
 }

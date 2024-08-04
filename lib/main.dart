@@ -1,4 +1,5 @@
 import 'package:azheim_care/pages/pictures_page.dart';
+import 'package:azheim_care/pages/puzzles_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'pages/home_page.dart';
@@ -28,6 +29,7 @@ class MyApp extends StatelessWidget {
             routes: {
               // 添加你的路由，比如:
               '/pictures': (context) => PicturesPage(),
+              '/puzzles': (context) => PuzzlesPage(),
               // 其他路由...
             },
           );

@@ -44,6 +44,7 @@ dependencies:
   image_picker: ^0.8.4+4
   path_provider: ^2.0.8
   sqflite: ^2.0.0+4
+  chewie: ^1.2.2
  
 
   
